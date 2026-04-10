@@ -1,0 +1,61 @@
+name: MDFN_2X
+scale: 2
+manual_seed: 0
+
+datasets:
+  train:
+    name: DIV2K
+    dataroot_gt: /Datasets/DIV2K/HR_sub
+    dataroot_lq: /Datasets/DIV2K/X2_sub
+    meta_info_file: /data/meta_info/meta_info_DIV2Ksub_GT.txt
+    io_backend:
+      type: disk
+    gt_size: 128
+    use_hflip: true
+    use_rot: true
+    use_shuffle: true
+    num_worker: 4
+    batch_size: 32
+
+  val_1:
+    name: Set5
+    dataroot_gt: /Datasets/Set5/GTmod12
+    dataroot_lq: /Datasets/Set5/LRbicx2
+    meta_info_file: /data/meta_info/meta_info_Set5_GT.txt
+    io_backend:
+      type: disk
+
+  val_2:
+    name: Set14
+    dataroot_gt: /Datasets/Set14/GTmod12
+    dataroot_lq: /Datasets/Set14/LRbicx2
+    meta_info_file: /data/meta_info/meta_info_Set14_GT.txt
+    io_backend:
+      type: disk
+
+tile:
+  tile_size: 64
+  tile_overlap: 32
+  window_size: 16
+
+network:
+  scale_factor: 2
+  channels: 3
+  base_channels: 64
+  laplacian_levels: 5
+  image_size: 64
+
+training:
+  epochs: 300
+  early_stopping_patience: 25
+  learning_rate: !!float 1e-4
+  weight_decay: !!float 1e-5
+  betas: [0.9, 0.999]
+  amsgrad: false
+
+logging:
+  log_dir: logs
+  checkpoint_dir: checkpoints
+  log_interval: 10 # Log every N batches
+  save_checkpoint_interval: 5 # Save checkpoint every N epochs
+  tensorboard_enabled: true

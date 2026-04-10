@@ -1,0 +1,5 @@
+baby.png (504,504,3)
+bird.png (288,288,3)
+butterfly.png (252,252,3)
+head.png (276,276,3)
+woman.png (336,228,3)
