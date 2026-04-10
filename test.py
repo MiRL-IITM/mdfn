@@ -1,6 +1,4 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import Dataset
 import PIL.Image as Image
 import torchvision.transforms as transforms
@@ -19,9 +17,22 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(torch.cuda.get_device_properties(device))
 
 # Scale factor configuration
-SCALE_FACTOR = 2  
+SCALE_FACTOR = 4
 
-model = MDFN(scale_factor=SCALE_FACTOR, channels=3, base_channels=64, laplacian_levels=5, image_size=32)
+if SCALE_FACTOR not in [2, 4]:
+    raise ValueError(f"Scale factor {SCALE_FACTOR} not supported. Use 2 or 4.")
+elif SCALE_FACTOR == 2:
+    print("Testing MDFN for 2x super-resolution...")
+    WINDOW_SIZE = 16
+    TILE_SIZE = 64
+    TILE_OVERLAP = 32
+    model = MDFN(scale_factor=SCALE_FACTOR, channels=3, base_channels=64, laplacian_levels=5, image_size=64)
+else:
+    print("Testing MDFN for 4x super-resolution...")
+    WINDOW_SIZE = 8
+    TILE_SIZE = 32
+    TILE_OVERLAP = 16
+    model = MDFN(scale_factor=SCALE_FACTOR, channels=3, base_channels=64, laplacian_levels=5, image_size=32)
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -34,14 +45,12 @@ print(f"Total trainable parameters: {count_parameters(model)/1e6}")
 
 
 model.to(device)
-summary(model, input_size=(1, 3, 32, 32), col_names= ("input_size","output_size","num_params","mult_adds"), depth = 4)
+summary(model, input_size=(1, 3, 64, 64) if SCALE_FACTOR == 2 else (1, 3, 32, 32), col_names= ("input_size","output_size","num_params","mult_adds"), depth = 4)
 
 def tile_process(images, model, scale):
     _, _, h_old, w_old = images.size()
-    window_size = 8
-    tile_size = 32
-    h_pad = (h_old // window_size + 1) * window_size - h_old
-    w_pad = (w_old // window_size + 1) * window_size - w_old
+    h_pad = (h_old // WINDOW_SIZE + 1) * WINDOW_SIZE - h_old
+    w_pad = (w_old // WINDOW_SIZE + 1) * WINDOW_SIZE - w_old
     img = torch.cat([images, torch.flip(images, [2])], 2)[
         :, :, : h_old + h_pad, :
     ]
@@ -49,12 +58,11 @@ def tile_process(images, model, scale):
         :, :, :, : w_old + w_pad
     ]
     b, c, h, w = img.size()
-    tile = min(tile_size, h, w)
-    assert tile % window_size == 0, "tile size should be a multiple of window_size"
-    tile_overlap = 16
+    tile = min(TILE_SIZE, h, w)
+    assert tile % WINDOW_SIZE == 0, "tile size should be a multiple of window_size"
+    
     sf = scale
-
-    stride = tile - tile_overlap
+    stride = tile - TILE_OVERLAP
     h_idx_list = list(range(0, h - tile, stride)) + [h - tile]
     w_idx_list = list(range(0, w - tile, stride)) + [w - tile]
     E = torch.zeros(b, c, h * sf, w * sf).type_as(img)
@@ -166,8 +174,8 @@ name = ["Set5", "BSD100", "Urban100", "Set14"]
 
 # Model checkpoint paths for different scale factors
 checkpoint_paths = {
-    2: f'checkpoints/MDFN_2X.pth',
-    4: f'checkpoints/MDFN_4X.pth'
+    2: f'checkpoints/MDFN_2X',
+    4: f'checkpoints/MDFN_4X'
 }
 
 path = checkpoint_paths[SCALE_FACTOR]
@@ -175,7 +183,7 @@ print(f"Loading model for {SCALE_FACTOR}x scale from: {path}")
 model.load_state_dict(torch.load(path))
 
 # Calculate FLOPS using thop (after loading checkpoint to avoid state_dict conflicts)
-input_tensor = torch.randn(1, 3, 32, 32).to(device)
+input_tensor = (torch.randn(1, 3, 32, 32) if SCALE_FACTOR == 4 else torch.randn(1, 3, 64, 64)).to(device)
 flops, params = profile(model, inputs=(input_tensor,), verbose=False)
 flops_formatted, params_formatted = clever_format([flops, params], "%.3f")
 

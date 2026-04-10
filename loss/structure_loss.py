@@ -2,7 +2,7 @@ import torch.nn as nn
 from wavemix import DWTForward
 
 class StructureLoss(nn.Module):
-    def __init__(self, wave="db1", mode="zero", J=1, loss_type='huber'):
+    def __init__(self, wave="db1", mode="zero", J=1):
         super(StructureLoss, self).__init__()
         self.J = J
         self.mode = mode

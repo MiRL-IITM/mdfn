@@ -1,5 +1,3 @@
-import math
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -58,7 +56,6 @@ class LaplacianPyramidFeatureExtractor(nn.Module):
             current = downsampled
         # Concatenate all levels
         return self.extractor(torch.cat(laplacian, dim=1))
-
 
 class FourierFeatureExtractor(nn.Module):
 
@@ -157,7 +154,6 @@ class FourierFeatureExtractor(nn.Module):
 
         return output 
 
-
 class MDFN(nn.Module):
     def __init__(
         self,
@@ -201,8 +197,6 @@ class MDFN(nn.Module):
             nn.GELU(),
             nn.Conv2d(base_channels//4, channels, kernel_size=3, padding=1)
         )
-        
-        self.final_activation = nn.Sigmoid()
 
         self.upsample = nn.Upsample(scale_factor=self.scale_factor, mode='bilinear', align_corners=False)
 
@@ -221,10 +215,9 @@ class MDFN(nn.Module):
         fourier_features = laplacian_features
         for block in self.fourier_block:
             fourier_features = block(fourier_features) + fourier_features
-        features = torch.cat([x, laplacian_features, fourier_features], dim=1)
+        features = torch.cat([fourier_features, x, laplacian_features], dim=1)
         out = self.refinement(features) + image
-        return self.final_activation(out)
-
+        return out
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

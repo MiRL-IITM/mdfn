@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 from tqdm import tqdm 
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -24,7 +23,7 @@ from loss.structure_loss import StructureLoss
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(torch.cuda.get_device_properties(device))
 
-torch.backends.cudnn.benchmark = True
+torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 
 def setup_logging(config):
@@ -151,7 +150,7 @@ def create_datasets(config):
     return trainset, val_datasets
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-c", "--config", default='configs/MDFN_2X.yaml', help="Path to the configuration file")
+parser.add_argument("-c", "--config", default='/media/mirl/DATA/Projects/mdfn/config/MDFN_2X.yaml', help="Path to the configuration file")
 parser.add_argument("-metric", "--eval_metric", default='psnr', help="Evaluation Metric used for training: PSNR or SSIM")
 
 args = parser.parse_args()
